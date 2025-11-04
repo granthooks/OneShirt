@@ -1,0 +1,10 @@
+/* Ensure logo images have transparent backgrounds */
+img[alt="OneShirt Logo"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  background-image: none !important;
+  mix-blend-mode: normal;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+

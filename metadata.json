@@ -1,0 +1,5 @@
+{
+  "name": "OneShirt.app - Gamified T-Shirt Bidding",
+  "description": "A gamified t-shirt bidding platform with a Tinder-style swipe interface. Users bid on t-shirt designs using credits. The first user to push a shirt's bid count over the threshold wins it for free. Features AI-powered t-shirt design generation.",
+  "requestFramePermissions": []
+}

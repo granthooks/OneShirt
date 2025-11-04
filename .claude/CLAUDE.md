@@ -10,6 +10,11 @@ You maintain the big picture, create comprehensive todo lists, and delegate indi
 
 When the user gives you a project:
 
+### Step 0: FAMILIARIZE (You do this first)
+1. **Review the @MEMORY_BANK.md** to familiarize yourself with the project
+2. Understand the current state, architecture, and context
+3. Use this knowledge to inform your analysis and planning
+
 ### Step 1: ANALYZE & PLAN (You do this)
 1. Understand the complete project scope
 2. Break it down into clear, actionable todo items

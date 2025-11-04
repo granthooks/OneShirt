@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-11-04T18:13:05.846Z",
+  "stats": {
+    "shirts": "7",
+    "users": "1",
+    "bidsToday": "4",
+    "revenue": "4",
+    "errors": [],
+    "pageText": "OneShirt\n\nAdmin Panel\n\nDashboard\nShirt Inventory\nGenerate Designs\nUser Management\nWinners & Orders\nBack to Swipe\nLogout\nDashboard\n\nManage your OneShirt platform\n\nDashboard Overview\nLast updated: 10:13:04 AM\nRefresh\nTotal Active Shirts\n7\nTotal Users\n1\nBids Today\n4\nTotal Revenue (Credits)\n4\nRecent Activity\nPlayer1 bid on Neon Nights\n8 hours ago\n1 credits\nPlayer1 bid on Urban Legend\n8 hours ago\n1 credits\nPlayer1 bid on Chromatic Fusion\n8 hours ago\n1 credits\nPlayer1 bid on Chromatic Fusion\n8 hours ago\n1 credits\nPopular Shirts\n#1\nChromatic Fusion\n3 / 250 bids\n2 total\n#2\nUrban Legend\n2 / 250 bids\n1 total\n#3\nNeon Nights\n2 / 250 bids\n1 total\n#4\nCosmic Dreams\n1 / 250 bids\n0 total\n#5\nRetro Wave\n1 / 250 bids\n0 total\nTop Users\n#1\nPlayer1\n4 bids placed\n4\ncredits spent"
+  },
+  "sections": {
+    "recentActivity": true,
+    "popularShirts": true,
+    "topUsers": true
+  },
+  "consoleErrors": [],
+  "screenshots": [
+    "01-homepage.png",
+    "02-admin-dashboard.png",
+    "03-final-state.png"
+  ]
+}
