@@ -66,15 +66,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         // This is intentionally insecure - it's just for development!
         const DEBUG_PASSWORD = 'password';
 
-        // Try to sign in with password
+        // Try to sign in with password FIRST
         let authResult = await supabase.auth.signInWithPassword({
           email: trimmedEmail,
           password: DEBUG_PASSWORD,
         });
 
-        // If sign in fails (user doesn't exist), create the account
+        // If sign in fails, determine why and handle accordingly
         if (authResult.error) {
-          console.log('[DEBUG LOGIN] User does not exist, creating account...');
+          console.log('[DEBUG LOGIN] Sign in failed:', authResult.error.message);
+
+          // User doesn't exist in Auth - create the account
+          console.log('[DEBUG LOGIN] Attempting to create new account...');
 
           // Sign up the debug user
           // IMPORTANT: We pass autoConfirm in the options to skip email verification for debug accounts
@@ -93,71 +96,136 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             }
           });
 
+          // Handle "User already registered" error - this means the auth user exists
+          // but the password might be different, OR it exists but we failed to sign in
+          // for another reason (like email not confirmed)
           if (signUpResult.error) {
-            throw new Error(`Failed to create debug user: ${signUpResult.error.message}`);
-          }
+            if (signUpResult.error.message.includes('User already registered') ||
+                signUpResult.error.message.includes('already registered')) {
+              console.log('[DEBUG LOGIN] User already registered in Auth, attempting sign in again...');
 
-          if (!signUpResult.data.user) {
-            throw new Error('Failed to create debug user: No user data returned');
-          }
+              // Try signing in one more time
+              authResult = await supabase.auth.signInWithPassword({
+                email: trimmedEmail,
+                password: DEBUG_PASSWORD,
+              });
 
-          const userId = signUpResult.data.user.id;
+              if (authResult.error) {
+                // Still failing - provide helpful error
+                throw new Error(
+                  `Debug login failed: ${authResult.error.message}\n\n` +
+                  `The user exists but sign-in failed. Possible issues:\n` +
+                  `1. Email confirmation required - Disable in Supabase Dashboard:\n` +
+                  `   Authentication > Providers > Email > "Enable email confirmations" = OFF\n` +
+                  `2. Password mismatch - Try resetting the user in Supabase Auth\n` +
+                  `3. User might be disabled or deleted`
+                );
+              }
 
-          console.log('[DEBUG LOGIN] User created with ID:', userId);
-
-          // Create user profile in database with appropriate admin flag
-          const { error: createError } = await supabase
-            .from('users')
-            .insert({
-              id: userId,
-              name: debugConfig.name,
-              avatar_url: `https://i.pravatar.cc/150?u=${trimmedEmail}`,
-              credit_balance: 1000, // Give debug users more credits
-              is_admin: debugConfig.isAdmin,
-            });
-
-          if (createError) {
-            console.error('[DEBUG LOGIN] Error creating user profile:', createError);
-            throw new Error(`Failed to create user profile: ${createError.message}`);
-          }
-
-          console.log('[DEBUG LOGIN] Successfully created debug user profile');
-
-          // Check if we got a session from signUp (happens if autoConfirm is enabled)
-          if (signUpResult.data.session) {
-            console.log('[DEBUG LOGIN] Session created automatically, user is logged in!');
-            authResult = signUpResult;
+              console.log('[DEBUG LOGIN] Sign in successful after retry!');
+            } else {
+              // Some other signup error
+              throw new Error(`Failed to create debug user: ${signUpResult.error.message}`);
+            }
           } else {
-            // If no session, we need to sign in (but this may fail if email confirmation is required)
-            console.log('[DEBUG LOGIN] No session from signUp, attempting sign in...');
-            console.log('[DEBUG LOGIN] NOTE: If this fails, enable autoConfirm in Supabase Dashboard:');
-            console.log('[DEBUG LOGIN] Authentication > Providers > Email > "Enable email confirmations" = OFF');
+            // Sign up succeeded
+            if (!signUpResult.data.user) {
+              throw new Error('Failed to create debug user: No user data returned');
+            }
 
-            authResult = await supabase.auth.signInWithPassword({
-              email: trimmedEmail,
-              password: DEBUG_PASSWORD,
-            });
+            const userId = signUpResult.data.user.id;
+            console.log('[DEBUG LOGIN] User created with ID:', userId);
 
-            if (authResult.error) {
-              throw new Error(
-                `Debug login failed: ${authResult.error.message}\n\n` +
-                `To fix this, disable email confirmation in Supabase:\n` +
-                `1. Go to your Supabase Dashboard\n` +
-                `2. Navigate to Authentication > Providers\n` +
-                `3. Click on Email provider\n` +
-                `4. Toggle OFF "Enable email confirmations"\n` +
-                `5. Save and try again`
-              );
+            // Create user profile in database with appropriate admin flag
+            const { error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: userId,
+                name: debugConfig.name,
+                avatar_url: `https://i.pravatar.cc/150?u=${trimmedEmail}`,
+                credit_balance: 1000, // Give debug users more credits
+                is_admin: debugConfig.isAdmin,
+              });
+
+            if (createError) {
+              console.error('[DEBUG LOGIN] Error creating user profile:', createError);
+              throw new Error(`Failed to create user profile: ${createError.message}`);
+            }
+
+            console.log('[DEBUG LOGIN] Successfully created debug user profile');
+
+            // Check if we got a session from signUp (happens if autoConfirm is enabled)
+            if (signUpResult.data.session) {
+              console.log('[DEBUG LOGIN] Session created automatically, user is logged in!');
+              authResult = signUpResult;
+            } else {
+              // If no session, we need to sign in (but this may fail if email confirmation is required)
+              console.log('[DEBUG LOGIN] No session from signUp, attempting sign in...');
+              console.log('[DEBUG LOGIN] NOTE: If this fails, enable autoConfirm in Supabase Dashboard:');
+              console.log('[DEBUG LOGIN] Authentication > Providers > Email > "Enable email confirmations" = OFF');
+
+              authResult = await supabase.auth.signInWithPassword({
+                email: trimmedEmail,
+                password: DEBUG_PASSWORD,
+              });
+
+              if (authResult.error) {
+                throw new Error(
+                  `Debug login failed: ${authResult.error.message}\n\n` +
+                  `To fix this, disable email confirmation in Supabase:\n` +
+                  `1. Go to your Supabase Dashboard\n` +
+                  `2. Navigate to Authentication > Providers\n` +
+                  `3. Click on Email provider\n` +
+                  `4. Toggle OFF "Enable email confirmations"\n` +
+                  `5. Save and try again`
+                );
+              }
             }
           }
         } else {
-          console.log('[DEBUG LOGIN] User exists, checking/updating admin status...');
+          console.log('[DEBUG LOGIN] Sign in successful!');
+        }
 
-          // User exists - make sure their admin status is correct
-          if (authResult.data.user) {
-            const userId = authResult.data.user.id;
+        // At this point, authResult should contain a valid session
+        // Now check/update the user profile in the database
+        if (authResult.data.user) {
+          const userId = authResult.data.user.id;
+          console.log('[DEBUG LOGIN] Checking user profile for ID:', userId);
 
-            // Update user to ensure correct admin status
+          // Check if user profile exists in database
+          const { data: existingUser, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          if (fetchError && fetchError.code !== 'PGRST116') {
+            // PGRST116 is "not found" error, which is fine
+            console.error('[DEBUG LOGIN] Error fetching user profile:', fetchError);
+          }
+
+          if (!existingUser) {
+            // User exists in Auth but not in database - create profile
+            console.log('[DEBUG LOGIN] User profile does not exist, creating...');
+            const { error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: userId,
+                name: debugConfig.name,
+                avatar_url: `https://i.pravatar.cc/150?u=${trimmedEmail}`,
+                credit_balance: 1000,
+                is_admin: debugConfig.isAdmin,
+              });
+
+            if (createError) {
+              console.error('[DEBUG LOGIN] Error creating user profile:', createError);
+              throw new Error(`Failed to create user profile: ${createError.message}`);
+            }
+
+            console.log('[DEBUG LOGIN] Successfully created user profile');
+          } else {
+            // User profile exists - update admin status to ensure it's correct
+            console.log('[DEBUG LOGIN] User profile exists, updating admin status...');
             const { error: updateError } = await supabase
               .from('users')
               .update({ is_admin: debugConfig.isAdmin })
@@ -165,6 +233,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
             if (updateError) {
               console.warn('[DEBUG LOGIN] Could not update admin status:', updateError);
+            } else {
+              console.log('[DEBUG LOGIN] Admin status updated successfully');
             }
           }
         }

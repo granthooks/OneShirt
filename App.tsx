@@ -562,6 +562,20 @@ const Header: React.FC<HeaderProps> = ({ user, setView, currentView, isAuthentic
         <span className="text-xl font-bold tracking-tighter text-white">OneShirt.app</span>
       </motion.div>
       <div className="flex items-center gap-2">
+        {user?.isAdmin && (
+          <motion.button
+            onClick={() => setView(AppView.ADMIN)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-full text-white font-semibold transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <AdminIcon className="w-5 h-5" />
+            <span>Admin</span>
+          </motion.button>
+        )}
         {isAuthenticated ? (
           <motion.button
             className="p-2 rounded-full hover:bg-white/10 transition-colors"
