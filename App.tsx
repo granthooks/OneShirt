@@ -7,7 +7,7 @@ import WinnerModal from './components/WinnerModal';
 import LoginModal from './components/LoginModal';
 import ImageGenerator from './components/ImageGenerator';
 import AdminDashboard from './components/AdminDashboard';
-import { OneShirtLogo, CreditIcon, AdminIcon, SwipeIcon } from './components/icons';
+import { OneShirtLogo, CreditIcon, AdminIcon, SwipeIcon, ProfileIcon } from './components/icons';
 import {
   createUser,
   getUserByName,
@@ -582,9 +582,7 @@ const Header: React.FC<HeaderProps> = ({ user, setView, currentView, isAuthentic
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+            <ProfileIcon className="h-6 w-6 text-gray-300" />
           </motion.button>
         ) : (
           <motion.button
@@ -650,11 +648,47 @@ interface SwipeCardProps {
 const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(shirt.likes || 0);
+  // Use state instead of ref to trigger re-renders for exit animation
+  const [exitDirection, setExitDirection] = useState<'left' | 'right'>('right');
+
+  // Debug: Log on component render
+  console.log('[SWIPE DEBUG] SwipeCard render for shirt:', shirt.name, 'exitDirection:', exitDirection);
+
+  // Define animation variants - these are evaluated when the animation plays, not at render time
+  const cardVariants = {
+    enter: {
+      y: 50,
+      opacity: 0,
+      scale: 0.9
+    },
+    center: {
+      y: 0,
+      opacity: 1,
+      scale: 1
+    },
+    exitLeft: {
+      x: -300,
+      opacity: 0,
+      scale: 0.8,
+      rotate: -15
+    },
+    exitRight: {
+      x: 300,
+      opacity: 0,
+      scale: 0.8,
+      rotate: 15
+    }
+  };
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     const { offset } = info;
+    console.log('[SWIPE DEBUG] handleDragEnd - offset.x:', offset.x);
     if (Math.abs(offset.x) > 100) {
-      onSwipe(offset.x > 0 ? 'right' : 'left');
+      const direction = offset.x > 0 ? 'right' : 'left';
+      console.log('[SWIPE DEBUG] handleDragEnd - determined direction:', direction);
+      setExitDirection(direction);
+      // Defer onSwipe to let React process state update first
+      setTimeout(() => onSwipe(direction), 0);
     }
   };
 
@@ -664,21 +698,29 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
     setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
   };
 
+  const handleButtonSwipe = (direction: 'left' | 'right') => {
+    console.log('[SWIPE DEBUG] handleButtonSwipe called with direction:', direction);
+    setExitDirection(direction);
+    // Defer onSwipe to let React process state update first
+    setTimeout(() => onSwipe(direction), 0);
+  };
+
+  // Determine which exit variant to use based on the state value
+  // This is recalculated when state updates, ensuring correct animation direction
+  const exitVariant = exitDirection === 'left' ? 'exitLeft' : 'exitRight';
+  console.log('[SWIPE DEBUG] exitVariant determined:', exitVariant, 'from exitDirection:', exitDirection);
+
   return (
     <motion.div
       drag={isActive}
       onDragEnd={handleDragEnd}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={1}
-      initial={{ y: 50, opacity: 0, scale: 0.9 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      exit={{ 
-        x: 300, 
-        opacity: 0, 
-        scale: 0.8,
-        rotate: 15
-      }}
-      transition={{ 
+      variants={cardVariants}
+      initial="enter"
+      animate="center"
+      exit={exitVariant}
+      transition={{
         duration: 0.4,
         ease: [0.25, 0.46, 0.45, 0.94]
       }}
@@ -756,14 +798,14 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
       </div>
 
       {/* Action buttons at bottom */}
-      <motion.div 
+      <motion.div
         className="flex-shrink-0 flex justify-center items-center gap-4 p-6 bg-white/5 backdrop-blur-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <motion.button 
-          onClick={() => onSwipe('left')} 
+        <motion.button
+          onClick={() => handleButtonSwipe('left')}
           className="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -772,8 +814,8 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </motion.button>
-        <motion.button 
-          onClick={() => onSwipe('right')} 
+        <motion.button
+          onClick={() => handleButtonSwipe('right')}
           className="w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-green-500 shadow-lg flex items-center justify-center"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

@@ -46,7 +46,13 @@
       "Bash(powershell -Command:*)",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_close",
-      "mcp__playwright__browser_press_key"
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_evaluate",
+      "Bash(ping:*)",
+      "Bash(node test-swipe-animation.js:*)",
+      "Bash(node test-swipe-animation.cjs:*)",
+      "Bash(node:*)",
+      "Bash(jobs)"
     ]
   },
   "enableAllProjectMcpServers": true,
