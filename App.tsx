@@ -5,6 +5,8 @@ import { ThumbsUp, Heart } from 'lucide-react';
 import { Shirt, User, AppView } from './types';
 import WinnerModal from './components/WinnerModal';
 import LoginModal from './components/LoginModal';
+import ProfileModal from './components/ProfileModal';
+import ProfileDropdown from './components/ProfileDropdown';
 import ImageGenerator from './components/ImageGenerator';
 import AdminDashboard from './components/AdminDashboard';
 import { OneShirtLogo, CreditIcon, AdminIcon, SwipeIcon, ProfileIcon } from './components/icons';
@@ -49,12 +51,17 @@ const dbUserToAppUser = (dbUser: DbUser): User => ({
   avatarUrl: dbUser.avatar_url || 'https://i.pravatar.cc/150?u=default',
   creditBalance: dbUser.credit_balance,
   isAdmin: dbUser.is_admin || false,
+  email: dbUser.email || undefined,
+  shippingAddress: dbUser.shipping_address || undefined,
+  shirtSize: dbUser.shirt_size || undefined,
+  gender: dbUser.gender || undefined,
 });
 
 // Main App Component
 const App: React.FC = () => {
   const [shirts, setShirts] = useState<Shirt[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [dbUser, setDbUser] = useState<DbUser | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -62,6 +69,8 @@ const App: React.FC = () => {
   const [isWinnerModalOpen, setIsWinnerModalOpen] = useState(false);
   const [winningShirt, setWinningShirt] = useState<Shirt | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [view, setView] = useState<AppView>(AppView.SWIPE);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +113,7 @@ const App: React.FC = () => {
 
           if (existingUsers) {
             // User exists in database
+            setDbUser(existingUsers);
             setUser(dbUserToAppUser(existingUsers));
             setUserId(existingUsers.id);
           } else {
@@ -254,6 +264,7 @@ const App: React.FC = () => {
         }
 
         if (existingUser) {
+          setDbUser(existingUser);
           setUser(dbUserToAppUser(existingUser));
           setUserId(existingUser.id);
         } else {
@@ -284,6 +295,7 @@ const App: React.FC = () => {
 
           if (newUser) {
             console.log('User profile created successfully:', newUser);
+            setDbUser(newUser);
             setUser(dbUserToAppUser(newUser));
             setUserId(newUser.id);
           }
@@ -291,6 +303,7 @@ const App: React.FC = () => {
       } else if (event === 'SIGNED_OUT') {
         // User logged out - clear user data
         setUser(null);
+        setDbUser(null);
         setUserId(null);
       }
     });
@@ -439,6 +452,34 @@ const App: React.FC = () => {
     }
   };
 
+  const handleProfileClick = () => {
+    setIsProfileModalOpen(true);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setDbUser(null);
+    setUserId(null);
+    setIsProfileDropdownOpen(false);
+  };
+
+  const handleProfileUpdated = async () => {
+    // Reload user data after profile update
+    if (userId) {
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (!error && updatedUser) {
+        setDbUser(updatedUser);
+        setUser(dbUserToAppUser(updatedUser));
+      }
+    }
+  };
+
   const activeShirts = shirts.slice(currentIndex, currentIndex + 3).reverse();
 
   // Show loading state
@@ -502,12 +543,24 @@ const App: React.FC = () => {
         currentView={view}
         isAuthenticated={isAuthenticated}
         onLoginClick={() => setIsLoginModalOpen(true)}
+        onProfileClick={handleProfileClick}
+        isProfileDropdownOpen={isProfileDropdownOpen}
+        onCloseProfileDropdown={() => setIsProfileDropdownOpen(false)}
+        onLogout={handleLogout}
       />
 
       <SwipeView activeShirts={activeShirts} handleSwipe={handleSwipe} />
 
       <WinnerModal isOpen={isWinnerModalOpen} onClose={closeWinnerModal} winningShirt={winningShirt} />
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={dbUser}
+        userId={userId}
+        userEmail={session?.user?.email || null}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   );
 };
@@ -520,8 +573,22 @@ interface HeaderProps {
   currentView: AppView;
   isAuthenticated: boolean;
   onLoginClick: () => void;
+  onProfileClick: () => void;
+  isProfileDropdownOpen: boolean;
+  onCloseProfileDropdown: () => void;
+  onLogout: () => void;
 }
-const Header: React.FC<HeaderProps> = ({ user, setView, currentView, isAuthenticated, onLoginClick }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  user, 
+  setView, 
+  currentView, 
+  isAuthenticated, 
+  onLoginClick,
+  onProfileClick,
+  isProfileDropdownOpen,
+  onCloseProfileDropdown,
+  onLogout,
+}) => {
   return (
     <motion.header
       className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 bg-white/5 backdrop-blur-sm"
@@ -561,7 +628,7 @@ const Header: React.FC<HeaderProps> = ({ user, setView, currentView, isAuthentic
         <OneShirtLogo className="w-10 h-10" />
         <span className="text-xl font-bold tracking-tighter text-white">OneShirt.app</span>
       </motion.div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative">
         {user?.isAdmin && (
           <motion.button
             onClick={() => setView(AppView.ADMIN)}
@@ -577,13 +644,22 @@ const Header: React.FC<HeaderProps> = ({ user, setView, currentView, isAuthentic
           </motion.button>
         )}
         {isAuthenticated ? (
-          <motion.button
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <ProfileIcon className="h-6 w-6 text-gray-300" />
-          </motion.button>
+          <div className="relative">
+            <motion.button
+              onClick={onProfileClick}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <ProfileIcon className="h-6 w-6 text-gray-300" />
+            </motion.button>
+            <ProfileDropdown
+              isOpen={isProfileDropdownOpen}
+              onClose={onCloseProfileDropdown}
+              onProfileClick={onProfileClick}
+              onLogoutClick={onLogout}
+            />
+          </div>
         ) : (
           <motion.button
             onClick={onLoginClick}

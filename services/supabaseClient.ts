@@ -28,6 +28,10 @@ export type Database = {
           avatar_url: string | null
           credit_balance: number
           is_admin: boolean
+          email: string | null
+          shipping_address: string | null
+          shirt_size: string | null
+          gender: string | null
           created_at: string
           updated_at: string
         }
@@ -37,6 +41,10 @@ export type Database = {
           avatar_url?: string | null
           credit_balance?: number
           is_admin?: boolean
+          email?: string | null
+          shipping_address?: string | null
+          shirt_size?: string | null
+          gender?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -46,6 +54,10 @@ export type Database = {
           avatar_url?: string | null
           credit_balance?: number
           is_admin?: boolean
+          email?: string | null
+          shipping_address?: string | null
+          shirt_size?: string | null
+          gender?: string | null
           created_at?: string
           updated_at?: string
         }

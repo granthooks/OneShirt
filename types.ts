@@ -14,6 +14,10 @@ export interface User {
   avatarUrl: string;
   creditBalance: number;
   isAdmin?: boolean;
+  email?: string;
+  shippingAddress?: string;
+  shirtSize?: string;
+  gender?: string;
 }
 
 export enum AppView {

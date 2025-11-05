@@ -1228,6 +1228,10 @@ export async function updateUser(
     avatar_url?: string | null
     credit_balance?: number
     is_admin?: boolean
+    email?: string | null
+    shipping_address?: string | null
+    shirt_size?: string | null
+    gender?: string | null
   }
 ): Promise<DatabaseResponse<User>> {
   try {
@@ -1249,6 +1253,94 @@ export async function updateUser(
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error updating user'
     console.error('Exception updating user:', err)
+    return { data: null, error: message }
+  }
+}
+
+/**
+ * Get the number of shirts won by a user
+ *
+ * @param userId - The user's unique identifier
+ * @returns The count of shirts won or an error
+ *
+ * @example
+ * ```typescript
+ * const { data, error } = await getUserWins('user-123')
+ * console.log(`User has won ${data} shirts`)
+ * ```
+ */
+export async function getUserWins(
+  userId: string
+): Promise<DatabaseResponse<number>> {
+  try {
+    const { count, error } = await supabase
+      .from('shirts')
+      .select('id', { count: 'exact', head: true })
+      .eq('winner_id', userId)
+      .eq('status', 'won')
+
+    if (error) {
+      console.error('Error getting user wins:', error)
+      return { data: null, error: error.message }
+    }
+
+    return { data: count || 0, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error getting user wins'
+    console.error('Exception getting user wins:', err)
+    return { data: null, error: message }
+  }
+}
+
+/**
+ * Update user profile information
+ *
+ * @param userId - The user's unique identifier
+ * @param updates - Object containing profile fields to update
+ * @returns The updated user or an error
+ *
+ * @example
+ * ```typescript
+ * const { data, error } = await updateUserProfile('user-123', {
+ *   name: 'Jane Doe',
+ *   email: 'jane@example.com',
+ *   shipping_address: '123 Main St',
+ *   shirt_size: 'M',
+ *   gender: 'female',
+ *   avatar_url: 'https://example.com/avatar.jpg'
+ * })
+ * ```
+ */
+export async function updateUserProfile(
+  userId: string,
+  updates: {
+    name?: string
+    email?: string | null
+    shipping_address?: string | null
+    shirt_size?: string | null
+    gender?: string | null
+    avatar_url?: string | null
+  }
+): Promise<DatabaseResponse<User>> {
+  try {
+    const updateData: UserUpdate = updates
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user profile:', error)
+      return { data: null, error: error.message }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error updating user profile'
+    console.error('Exception updating user profile:', err)
     return { data: null, error: message }
   }
 }
