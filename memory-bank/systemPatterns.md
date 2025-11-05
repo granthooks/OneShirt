@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last Updated:** 2025-01-04
+**Last Updated:** 2025-01-05
 
 ---
 
@@ -64,6 +64,9 @@
 - `SwipeCard` - Pure UI for shirt cards
 - `Header` - Header display
 - `WinnerModal` - Celebration UI
+- `ProfileDropdown` - Profile menu dropdown
+- `ProfileModal` - User profile editing modal
+- `LoginModal` - Authentication modal
 - All admin page components
 
 **Benefits:**
@@ -76,9 +79,9 @@
 ### 2. Service Layer Abstraction
 
 **Services:**
-- `databaseService.ts` - All Supabase operations
+- `databaseService.ts` - All Supabase operations (includes getUserWins, updateUserProfile)
 - `imageGenerationService.ts` - AI image generation
-- `supabaseClient.ts` - Supabase initialization
+- `supabaseClient.ts` - Supabase initialization and type definitions
 
 **Pattern:**
 ```typescript
@@ -208,13 +211,17 @@ App.tsx (Container)
 ├── Event Handlers
 │   ├── handleSwipe()
 │   ├── addGeneratedShirt()
-│   └── closeWinnerModal()
+│   ├── closeWinnerModal()
+│   ├── handleProfileClick()
+│   ├── handleLogout()
+│   └── handleProfileUpdated()
 │
 └── Render
-    ├── Header
+    ├── Header (with ProfileDropdown)
     ├── SwipeView | AdminDashboard
     ├── WinnerModal
-    └── LoginModal
+    ├── LoginModal
+    └── ProfileModal
 ```
 
 ---

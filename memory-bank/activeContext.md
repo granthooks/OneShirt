@@ -1,22 +1,88 @@
 # Active Context
 
-**Last Updated:** 2025-01-04
-**Current Sprint:** Admin Dashboard & Auth Integration
-**Status:** ✅ Completed
+**Last Updated:** 2025-01-05
+**Current Sprint:** Code Cleanup & Polish
+**Status:** ✅ In Progress
 
 ---
 
 ## 🎯 Current Focus
 
-All three major feature requests have been successfully implemented and tested:
+Code cleanup and polish:
 
-1. ✅ Header reorganization
-2. ✅ Authentication system with magic links
-3. ✅ Complete admin dashboard with 5 management pages
+1. ✅ Removed debug console.log statements from swipe functionality
+2. ✅ Cleaned up SwipeCard component (removed all [SWIPE DEBUG] logs)
+3. ✅ Improved production console cleanliness
+
+Previous work completed:
+- ✅ Profile management system (dropdown, modal, database schema)
 
 ---
 
-## 📝 Recent Changes (2025-01-04)
+## 📝 Recent Changes
+
+### Code Cleanup - Debug Log Removal (2025-01-05)
+
+**Removed:**
+- All `[SWIPE DEBUG]` console.log statements from SwipeCard component
+- Debug logging from render cycle (shirt name, exitDirection)
+- Debug logging from handleDragEnd (offset.x, direction)
+- Debug logging from handleButtonSwipe (direction)
+- Debug logging from exitVariant determination
+
+**Files Modified:**
+- `App.tsx` - Removed 5 debug console.log statements from SwipeCard component
+
+**Impact:**
+- Cleaner console output in production
+- Better performance (fewer console operations)
+- Improved user experience (no debug noise)
+
+---
+
+### Profile Dropdown & Modal (2025-01-05)
+
+**Added:**
+- Profile dropdown menu component that appears on profile icon click
+- Profile modal with comprehensive user information display
+- Editable profile fields: name, email, shipping address, shirt size, gender, profile picture
+- Prominent wins display with trophy icon at top of profile modal
+- Database migration adding email, shipping_address, shirt_size, and gender fields to users table
+- getUserWins() function to count shirts won by user
+- updateUserProfile() function for profile updates
+
+**Features:**
+- Dropdown menu with "Profile" and "Logout" options
+- Click outside to close dropdown
+- Profile modal shows all user information with editable fields
+- Wins count prominently displayed with trophy icon
+- Gender toggle (Male/Female buttons)
+- Shirt size dropdown (XS, S, M, L, XL, XXL)
+- Profile picture preview and URL input
+- Save/Cancel buttons with loading states
+- Automatic user data refresh after profile update
+
+**Files Created:**
+- `components/ProfileDropdown.tsx` - Dropdown menu component
+- `components/ProfileModal.tsx` - Profile editing modal
+- `supabase/migrations/20250105_add_profile_fields.sql` - Database migration (SQL provided, user ran manually)
+
+**Files Modified:**
+- `App.tsx` - Integrated dropdown and modal, added state management
+- `services/databaseService.ts` - Added getUserWins() and updateUserProfile() functions
+- `services/supabaseClient.ts` - Updated User type definitions with new fields
+- `types.ts` - Updated User interface with profile fields
+
+**Database Changes:**
+- Added `email` TEXT column (nullable)
+- Added `shipping_address` TEXT column (nullable)
+- Added `shirt_size` TEXT column (nullable, CHECK constraint for valid sizes)
+- Added `gender` TEXT column (nullable, CHECK constraint for 'male'/'female')
+- Created index on email field
+
+---
+
+### Previous Changes (2025-01-04)
 
 ### Header Redesign
 
@@ -209,29 +275,32 @@ All three major feature requests have been successfully implemented and tested:
 ## 🐛 Known Issues
 
 ### Resolved
+- ✅ Constant console debug messages (fixed: removed all [SWIPE DEBUG] logs)
 - ✅ Dashboard statistics broken (fixed: database field names)
 - ✅ Header layout incorrect (fixed: reorganized components)
 - ✅ No authentication system (fixed: added Supabase Auth)
 - ✅ No admin interface (fixed: complete dashboard created)
 
 ### Current
-- None! All tests passing
+- None! All tests passing, console is clean
 
 ### Future Considerations
 - Add role-based admin access control
 - Implement email notifications for winners
 - Add CSV export for admin data
-- Shipping address collection from winners
+- ~~Shipping address collection from winners~~ ✅ Completed in profile modal
 - Payment integration for credit purchases
+- Profile picture upload to Supabase Storage (currently URL input only)
 
 ---
 
 ## 🎯 Next Steps
 
 ### Immediate (Optional)
-1. Add user's actual FAL_KEY to `.env.local`
-2. Test AI design generation with real API
-3. Add more initial shirt designs to database
+1. ✅ Remove debug console logs (completed)
+2. Add user's actual FAL_KEY to `.env.local`
+3. Test AI design generation with real API
+4. Add more initial shirt designs to database
 
 ### Short-Term
 1. Implement role-based access control for admin

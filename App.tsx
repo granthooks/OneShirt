@@ -727,8 +727,6 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
   // Use state instead of ref to trigger re-renders for exit animation
   const [exitDirection, setExitDirection] = useState<'left' | 'right'>('right');
 
-  // Debug: Log on component render
-  console.log('[SWIPE DEBUG] SwipeCard render for shirt:', shirt.name, 'exitDirection:', exitDirection);
 
   // Define animation variants - these are evaluated when the animation plays, not at render time
   const cardVariants = {
@@ -758,10 +756,8 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     const { offset } = info;
-    console.log('[SWIPE DEBUG] handleDragEnd - offset.x:', offset.x);
     if (Math.abs(offset.x) > 100) {
       const direction = offset.x > 0 ? 'right' : 'left';
-      console.log('[SWIPE DEBUG] handleDragEnd - determined direction:', direction);
       setExitDirection(direction);
       // Defer onSwipe to let React process state update first
       setTimeout(() => onSwipe(direction), 0);
@@ -775,7 +771,6 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
   };
 
   const handleButtonSwipe = (direction: 'left' | 'right') => {
-    console.log('[SWIPE DEBUG] handleButtonSwipe called with direction:', direction);
     setExitDirection(direction);
     // Defer onSwipe to let React process state update first
     setTimeout(() => onSwipe(direction), 0);
@@ -784,7 +779,6 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
   // Determine which exit variant to use based on the state value
   // This is recalculated when state updates, ensuring correct animation direction
   const exitVariant = exitDirection === 'left' ? 'exitLeft' : 'exitRight';
-  console.log('[SWIPE DEBUG] exitVariant determined:', exitVariant, 'from exitDirection:', exitDirection);
 
   return (
     <motion.div
