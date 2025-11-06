@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       define: {
         'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY)
+        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+        'import.meta.env.VITE_BRIGHT_DATA_API_KEY': JSON.stringify(env.BRIGHT_DATA_API_KEY),
+        'import.meta.env.VITE_BRIGHT_DATA_ZONE': JSON.stringify(env.BRIGHT_DATA_ZONE)
       },
       resolve: {
         alias: {

@@ -31,4 +31,5 @@ export enum AdminPage {
   GENERATE,
   USERS,
   ORDERS,
+  SCRAPER,
 }

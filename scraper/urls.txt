@@ -1,0 +1,8 @@
+# Sample Threadless Product URLs
+# Add one URL per line
+# Lines starting with # are comments and will be ignored
+
+# Example URLs (replace with actual product URLs from threadless.com):
+https://www.threadless.com/shop/@tobefonseca/design/reset-restart-refocus-refill-coffee
+https://www.threadless.com/shop/@mmartabc/design/dynamic-stripe-cascade
+https://www.threadless.com/shop/@LYR/design/recline

@@ -9,15 +9,20 @@
     "preview": "vite preview",
     "migrate": "node scripts/apply-migration.js",
     "migrate:show": "node scripts/apply-migration.js --show-sql",
-    "upload-shirts": "node scripts/upload-shirts-to-storage.js"
+    "upload-shirts": "node scripts/upload-shirts-to-storage.js",
+    "scrape:urls": "tsx scraper/scrape.ts",
+    "scrape:file": "tsx scraper/scrape.ts --file=scraper/urls.txt"
   },
   "dependencies": {
     "@fal-ai/client": "^1.7.2",
     "@supabase/supabase-js": "^2.78.0",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

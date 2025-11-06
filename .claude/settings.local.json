@@ -52,7 +52,14 @@
       "Bash(node test-swipe-animation.js:*)",
       "Bash(node test-swipe-animation.cjs:*)",
       "Bash(node:*)",
-      "Bash(jobs)"
+      "Bash(jobs)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:docs.brightdata.com)",
+      "WebFetch(domain:brightdata.com)",
+      "Bash(npm run scrape:file:*)",
+      "Bash(tasklist:*)",
+      "Bash(test-scraped-shirts.js)",
+      "Bash(npm:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1,0 +1,9 @@
+# Sample Threadless Product URLs for Testing the Scraper
+# Paste these into the scraper UI to test
+
+# Classic designs
+https://www.threadless.com/shop/@tobefonseca/design/retail-trends/mens
+
+# More examples (uncomment to test multiple URLs)
+# https://www.threadless.com/shop/@someartist/design/cool-design/mens
+# https://www.threadless.com/shop/@anotherone/design/awesome-shirt/mens

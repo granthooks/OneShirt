@@ -7,6 +7,7 @@ import InventoryPage from './admin/InventoryPage';
 import GeneratePage from './admin/GeneratePage';
 import UsersPage from './admin/UsersPage';
 import OrdersPage from './admin/OrdersPage';
+import ScraperPage from './admin/ScraperPage';
 
 interface AdminDashboardProps {
   user: User | null;
@@ -69,6 +70,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </svg>
       )
     },
+    {
+      page: AdminPage.SCRAPER,
+      label: 'Import Shirts',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+        </svg>
+      )
+    },
   ];
 
   const getPageTitle = () => {
@@ -88,6 +98,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return <UsersPage />;
       case AdminPage.ORDERS:
         return <OrdersPage />;
+      case AdminPage.SCRAPER:
+        return <ScraperPage />;
       default:
         return <DashboardPage />;
     }
