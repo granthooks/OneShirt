@@ -9,6 +9,7 @@ import ProfileModal from './components/ProfileModal';
 import ProfileDropdown from './components/ProfileDropdown';
 import ImageGenerator from './components/ImageGenerator';
 import AdminDashboard from './components/AdminDashboard';
+import SplashScreenModal from './components/SplashScreenModal';
 import { OneShirtLogo, CreditIcon, AdminIcon, SwipeIcon, ProfileIcon } from './components/icons';
 import {
   createUser,
@@ -71,9 +72,22 @@ const App: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isSplashScreenOpen, setIsSplashScreenOpen] = useState(false);
   const [view, setView] = useState<AppView>(AppView.SWIPE);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if splash screen should be shown
+  useEffect(() => {
+    // Only check after auth is loaded to avoid flash
+    if (!isAuthLoading && !session) {
+      // User is not authenticated - check if they've seen the splash
+      const hasSeenSplash = localStorage.getItem('hasSeenSplash');
+      if (!hasSeenSplash) {
+        setIsSplashScreenOpen(true);
+      }
+    }
+  }, [isAuthLoading, session]);
 
   // Initialize auth and data from Supabase on mount
   useEffect(() => {
@@ -480,6 +494,17 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSplashGetStarted = () => {
+    // Close splash and open login modal
+    setIsSplashScreenOpen(false);
+    setIsLoginModalOpen(true);
+  };
+
+  const handleSplashClose = () => {
+    // Just close the splash screen
+    setIsSplashScreenOpen(false);
+  };
+
   const activeShirts = shirts.slice(currentIndex, currentIndex + 3).reverse();
 
   // Show loading state
@@ -530,6 +555,11 @@ const App: React.FC = () => {
         />
         <WinnerModal isOpen={isWinnerModalOpen} onClose={closeWinnerModal} winningShirt={winningShirt} />
         <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+        <SplashScreenModal
+          isOpen={isSplashScreenOpen}
+          onClose={handleSplashClose}
+          onGetStarted={handleSplashGetStarted}
+        />
       </>
     );
   }
@@ -560,6 +590,11 @@ const App: React.FC = () => {
         userId={userId}
         userEmail={session?.user?.email || null}
         onProfileUpdated={handleProfileUpdated}
+      />
+      <SplashScreenModal
+        isOpen={isSplashScreenOpen}
+        onClose={handleSplashClose}
+        onGetStarted={handleSplashGetStarted}
       />
     </div>
   );

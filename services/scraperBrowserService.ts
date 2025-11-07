@@ -273,6 +273,7 @@ export async function scrapeProductUrl(url: string): Promise<ScrapeResult> {
 async function uploadImageToStorage(imageUrl: string): Promise<string> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const proxyUrl = import.meta.env.VITE_IMAGE_PROXY_URL || 'http://localhost:3100';
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase credentials not configured');
@@ -280,19 +281,64 @@ async function uploadImageToStorage(imageUrl: string): Promise<string> {
 
   const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
-  console.log(`[Storage] Downloading image...`);
+  console.log(`[Storage] Downloading image from: ${imageUrl}`);
 
-  // Fetch the image
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.status}`);
+  try {
+    // Use proxy server to fetch the image (bypasses CORS)
+    const proxyRequestUrl = `${proxyUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    console.log(`[Storage] Using proxy: ${proxyRequestUrl}`);
+
+    const response = await fetch(proxyRequestUrl);
+
+    console.log(`[Storage] Proxy response status: ${response.status}`);
+    console.log(`[Storage] Proxy response ok: ${response.ok}`);
+
+    if (!response.ok) {
+      // If proxy fails, try direct fetch as fallback
+      console.warn(`[Storage] Proxy failed, attempting direct fetch...`);
+      const directResponse = await fetch(imageUrl);
+
+      if (!directResponse.ok) {
+        throw new Error(`Failed to fetch image via proxy and direct: HTTP ${response.status} ${response.statusText}`);
+      }
+
+      console.log(`[Storage] Direct fetch successful (fallback)`);
+      return await processImageResponse(directResponse, supabase);
+    }
+
+    console.log(`[Storage] Proxy fetch successful`);
+    return await processImageResponse(response, supabase);
+
+  } catch (error) {
+    // Enhanced error logging
+    console.error(`[Storage] ERROR downloading/uploading image:`, error);
+
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error(`CORS Error: Cannot download image from ${imageUrl}. The image URL may be blocked by CORS policy. Make sure the image proxy server is running (npm run server). Original error: ${error.message}`);
+    }
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error(`Unknown error uploading image: ${String(error)}`);
   }
+}
 
+/**
+ * Process image response and upload to Supabase
+ */
+async function processImageResponse(response: Response, supabase: any): Promise<string> {
+  console.log(`[Storage] Converting image to blob...`);
   const imageBuffer = await response.arrayBuffer();
   const imageBlob = new Blob([imageBuffer]);
 
+  console.log(`[Storage] Image size: ${imageBlob.size} bytes`);
+
   // Generate filename
   const contentType = response.headers.get('content-type');
+  console.log(`[Storage] Content-Type: ${contentType}`);
+
   let extension = 'jpg';
   if (contentType?.includes('png')) {
     extension = 'png';
@@ -302,7 +348,7 @@ async function uploadImageToStorage(imageUrl: string): Promise<string> {
 
   const filename = `scraped-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 
-  console.log(`[Storage] Uploading as: ${filename}`);
+  console.log(`[Storage] Uploading to Supabase as: ${filename}`);
 
   // Upload to Supabase Storage
   const { data, error } = await supabase.storage
@@ -313,15 +359,18 @@ async function uploadImageToStorage(imageUrl: string): Promise<string> {
     });
 
   if (error) {
-    throw new Error(`Storage upload error: ${error.message}`);
+    console.error(`[Storage] Upload error:`, error);
+    throw new Error(`Storage upload error: ${error.message} (Code: ${error.name})`);
   }
+
+  console.log(`[Storage] Upload successful, getting public URL...`);
 
   // Get public URL
   const { data: publicUrlData } = supabase.storage
     .from('shirt-images')
     .getPublicUrl(data.path);
 
-  console.log(`[Storage] Upload complete`);
+  console.log(`[Storage] Public URL: ${publicUrlData.publicUrl}`);
   return publicUrlData.publicUrl;
 }
 
@@ -417,14 +466,33 @@ export async function processScrapedShirt(shirt: ScrapedShirt): Promise<{
   skipped?: boolean;
 }> {
   try {
+    console.log(`[Process] Starting processing for: "${shirt.title}"`);
+    console.log(`[Process] Image URL: ${shirt.imageUrl}`);
+    console.log(`[Process] Designer: ${shirt.designerName}`);
+
     // Upload image
+    console.log(`[Process] Step 1: Uploading image to storage...`);
     const imageStorageUrl = await uploadImageToStorage(shirt.imageUrl);
+    console.log(`[Process] Step 1: Complete - Storage URL: ${imageStorageUrl}`);
 
     // Insert into database
-    return await insertShirtIntoDatabase(shirt, imageStorageUrl);
+    console.log(`[Process] Step 2: Inserting into database...`);
+    const result = await insertShirtIntoDatabase(shirt, imageStorageUrl);
+    console.log(`[Process] Step 2: Complete - Result:`, result);
+
+    return result;
 
   } catch (error) {
+    console.error(`[Process] ERROR:`, error);
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error(`[Process] Error message: ${errorMessage}`);
+    if (errorStack) {
+      console.error(`[Process] Error stack:`, errorStack);
+    }
+
     return { success: false, error: errorMessage };
   }
 }

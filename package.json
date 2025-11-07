@@ -11,15 +11,20 @@
     "migrate:show": "node scripts/apply-migration.js --show-sql",
     "upload-shirts": "node scripts/upload-shirts-to-storage.js",
     "scrape:urls": "tsx scraper/scrape.ts",
-    "scrape:file": "tsx scraper/scrape.ts --file=scraper/urls.txt"
+    "scrape:file": "tsx scraper/scrape.ts --file=scraper/urls.txt",
+    "server": "node server/imageProxy.js",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
   },
   "dependencies": {
     "@fal-ai/client": "^1.7.2",
     "@supabase/supabase-js": "^2.78.0",
     "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
+    "node-fetch": "^3.3.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tsx": "^4.20.6"
@@ -28,6 +33,7 @@
     "@playwright/test": "^1.56.1",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

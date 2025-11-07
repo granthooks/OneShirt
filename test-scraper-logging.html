@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scraper Enhanced Logging Test</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #00ff00;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #00ffff;
+    }
+    .section {
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .log-area {
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 3px 0;
+    }
+    .log-error {
+      color: #ff4444;
+    }
+    .log-success {
+      color: #44ff44;
+    }
+    .log-info {
+      color: #4444ff;
+    }
+    .log-warning {
+      color: #ffaa00;
+    }
+    button {
+      background: #0066ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0055dd;
+    }
+    button:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      background: #000;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .status-idle {
+      background: #333;
+    }
+    .status-running {
+      background: #0066ff;
+      animation: pulse 2s infinite;
+    }
+    .status-success {
+      background: #00aa00;
+    }
+    .status-error {
+      background: #aa0000;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Scraper Enhanced Logging Test</h1>
+
+  <div class="section">
+    <h2>Test Configuration</h2>
+    <p><strong>Purpose:</strong> Test the enhanced error logging in the scraper service</p>
+    <p><strong>Dev Server:</strong> <a href="http://localhost:3005" target="_blank" style="color: #00ffff;">http://localhost:3005</a></p>
+    <p><strong>Default Test URL:</strong> The failing Threadless URL</p>
+  </div>
+
+  <div class="section">
+    <h2>Test URL</h2>
+    <input
+      type="text"
+      id="testUrl"
+      value="https://www.threadless.com/shop/@alfbocreative/design/double-oscar/mens/t-shirt/regular?color=smoke&variation=front#m"
+      placeholder="Enter Threadless product URL"
+    />
+  </div>
+
+  <div class="section">
+    <h2>Test Actions</h2>
+    <button id="testScrapeBtn">1. Test Scrape Only (Parse HTML)</button>
+    <button id="testProcessBtn">2. Test Full Process (Upload + DB)</button>
+    <button id="clearLogsBtn">Clear Logs</button>
+    <button id="openDevToolsBtn">Open DevTools</button>
+  </div>
+
+  <div class="section">
+    <h2>Status</h2>
+    <div id="status" class="status status-idle">Idle - Ready to test</div>
+  </div>
+
+  <div class="section">
+    <h2>Console Logs (Enhanced)</h2>
+    <div id="logs" class="log-area">
+      <div class="log-entry log-info">Waiting for test to start...</div>
+      <div class="log-entry log-warning">Open Browser DevTools (F12) to see detailed console output</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Instructions</h2>
+    <ol>
+      <li><strong>Open Browser DevTools</strong> (Press F12 or right-click → Inspect)</li>
+      <li>Go to the <strong>Console</strong> tab</li>
+      <li>Click <strong>"1. Test Scrape Only"</strong> to test HTML parsing</li>
+      <li>Click <strong>"2. Test Full Process"</strong> to test image upload (this should show the CORS error)</li>
+      <li>Watch the console for detailed logs with prefixes like <code>[Process]</code>, <code>[Storage]</code>, <code>[DB]</code></li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>Expected Enhanced Log Output</h2>
+    <pre style="color: #888; font-size: 11px;">
+[Process] Starting processing for: "DOUBLE OSCAR"
+[Process] Image URL: https://images.threadless.com/products/...
+[Process] Designer: alfbocreative
+[Process] Step 1: Uploading image to storage...
+[Storage] Downloading image from: https://images.threadless.com/products/...
+[Storage] Fetch response status: XXX
+[Storage] Fetch response ok: false/true
+[Storage] ERROR downloading/uploading image: TypeError: Failed to fetch
+[Process] ERROR: Error: CORS Error: Cannot download image...
+[Process] Error message: CORS Error: Cannot download image from...
+    </pre>
+  </div>
+
+  <script type="module">
+    const logs = document.getElementById('logs');
+    const status = document.getElementById('status');
+    const testUrl = document.getElementById('testUrl');
+
+    function addLog(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${timestamp}] ${message}`;
+      logs.appendChild(entry);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function setStatus(message, type = 'idle') {
+      status.textContent = message;
+      status.className = `status status-${type}`;
+    }
+
+    // Intercept console logs
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      if (message.includes('[Process]') || message.includes('[Storage]') || message.includes('[DB]')) {
+        addLog(message, 'info');
+      }
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      addLog(message, 'error');
+    };
+
+    // Test 1: Scrape only (parse HTML)
+    document.getElementById('testScrapeBtn').addEventListener('click', async () => {
+      addLog('=== TEST 1: SCRAPE ONLY ===', 'info');
+      setStatus('Scraping URL...', 'running');
+
+      try {
+        addLog('Importing scraper service...', 'info');
+
+        // Note: This won't work directly in HTML - needs to be run in the actual app
+        addLog('ERROR: This test must be run in the actual OneShirt app', 'error');
+        addLog('Please navigate to: http://localhost:3005', 'warning');
+        addLog('Then go to: Admin > Import Shirts', 'warning');
+        setStatus('Error: Must run in OneShirt app', 'error');
+
+      } catch (error) {
+        addLog(`Error: ${error.message}`, 'error');
+        setStatus('Test failed', 'error');
+      }
+    });
+
+    // Test 2: Full process (upload + DB)
+    document.getElementById('testProcessBtn').addEventListener('click', async () => {
+      addLog('=== TEST 2: FULL PROCESS ===', 'info');
+      addLog('This test must be run in the actual OneShirt app', 'warning');
+      addLog('Navigate to: http://localhost:3005', 'warning');
+      addLog('Go to: Admin > Import Shirts', 'warning');
+      addLog('Paste the URL and click "Start Scraping"', 'warning');
+      setStatus('Waiting for app test', 'warning');
+    });
+
+    // Clear logs
+    document.getElementById('clearLogsBtn').addEventListener('click', () => {
+      logs.innerHTML = '<div class="log-entry log-info">Logs cleared</div>';
+      setStatus('Idle - Ready to test', 'idle');
+    });
+
+    // Open DevTools
+    document.getElementById('openDevToolsBtn').addEventListener('click', () => {
+      addLog('DevTools should already be open (F12)', 'info');
+      addLog('If not, press F12 or right-click and select "Inspect"', 'info');
+    });
+
+    // Add helpful startup info
+    addLog('Test page loaded', 'success');
+    addLog('To test the enhanced logging:', 'info');
+    addLog('1. Open http://localhost:3005 in a new tab', 'warning');
+    addLog('2. Log in as admin', 'warning');
+    addLog('3. Navigate to Admin > Import Shirts', 'warning');
+    addLog('4. Paste the test URL and start scraping', 'warning');
+    addLog('5. Check browser console for detailed logs', 'warning');
+  </script>
+</body>
+</html>

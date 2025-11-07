@@ -59,7 +59,10 @@
       "Bash(npm run scrape:file:*)",
       "Bash(tasklist:*)",
       "Bash(test-scraped-shirts.js)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(kill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(del test-image-picsum.jpg)"
     ]
   },
   "enableAllProjectMcpServers": true,

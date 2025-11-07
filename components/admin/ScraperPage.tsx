@@ -213,9 +213,13 @@ const ScraperPage: React.FC = () => {
     }
 
     // Complete
-    setProgress(prev => ({ ...prev, status: 'complete' }));
+    setProgress(prev => {
+      const finalProgress = { ...prev, status: 'complete' as const };
+      // Use the final progress values for the log message
+      addLog(`Scraping complete! Success: ${finalProgress.successCount}, Failed: ${finalProgress.failedCount}, Skipped: ${finalProgress.skippedCount}`, 'success');
+      return finalProgress;
+    });
     setIsScrapingActive(false);
-    addLog(`Scraping complete! Success: ${progress.successCount}, Failed: ${progress.failedCount}, Skipped: ${progress.skippedCount}`, 'success');
   };
 
   // Clear all
