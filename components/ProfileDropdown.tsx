@@ -49,10 +49,13 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <motion.div
           ref={dropdownRef}
           className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden z-50"
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          initial={{ opacity: 0, y: -10, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, y: -10, scale: 0.9 }}
+          transition={{ 
+            duration: 0.2,
+            ease: [0.4, 0, 0.2, 1] // Custom easing for smoother animation
+          }}
         >
           <div className="py-1">
             <motion.button

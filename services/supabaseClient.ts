@@ -189,6 +189,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
+// Log Supabase configuration (without exposing the key)
+console.log('[supabaseClient] Initializing Supabase client...')
+console.log('[supabaseClient] Supabase URL:', supabaseUrl)
+console.log('[supabaseClient] Supabase Key present:', !!supabaseAnonKey && supabaseAnonKey.length > 0)
+
 // ============================================================================
 // CLIENT INITIALIZATION
 // ============================================================================
@@ -216,7 +221,34 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * })
  * ```
  */
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Step 1: Create a function to get or re-initialize the Supabase client
+let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    console.log('[supabaseClient] Creating new Supabase client instance...');
+    // Step 3: Try a different configuration - keep autoRefreshToken disabled to prevent hanging
+    // The issue seems to be that autoRefreshToken tries to refresh the token and hangs
+    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: false, // Disabled - causes hanging on page refresh
+        detectSessionInUrl: false, // Disable URL-based session detection to prevent conflicts
+      },
+    });
+  }
+  return supabaseInstance;
+}
+
+// Export the client instance
+export const supabase = getSupabaseClient();
+
+// Step 1: Export a function to re-initialize the client if needed
+export function reinitializeSupabaseClient() {
+  console.log('[supabaseClient] Re-initializing Supabase client...');
+  supabaseInstance = null;
+  return getSupabaseClient();
+}
 
 // ============================================================================
 // TYPE EXPORTS

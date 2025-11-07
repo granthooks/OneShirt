@@ -8,6 +8,8 @@
  */
 
 import { supabase } from './supabaseClient'
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from './supabaseClient'
 import type {
   User,
   Shirt,
@@ -373,21 +375,37 @@ export async function getShirt(shirtId: string): Promise<DatabaseResponse<Shirt>
  */
 export async function getActiveShirts(): Promise<DatabaseResponse<Shirt[]>> {
   try {
-    const { data, error } = await supabase
+    console.log('[databaseService] getActiveShirts: Starting query...')
+    
+    // Don't call getSession() here - it hangs after refresh
+    // Instead, rely on the session that was already restored in App.tsx
+    console.log('[databaseService] getActiveShirts: Creating query builder (session should already be set)...')
+    
+    // Build the query
+    const query = supabase
       .from('shirts')
       .select('*')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error getting active shirts:', error)
-      return { data: null, error: error.message }
+    
+    console.log('[databaseService] getActiveShirts: Query built, executing...')
+    
+    // Execute the query
+    const response = await query
+    
+    console.log('[databaseService] getActiveShirts: Query response received:', response)
+    
+    if (response.error) {
+      console.error('[databaseService] Error getting active shirts:', response.error)
+      return { data: null, error: response.error.message }
     }
-
-    return { data, error: null }
+    
+    console.log('[databaseService] getActiveShirts: Success, returning', response.data?.length || 0, 'shirts')
+    return { data: response.data || [], error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error getting active shirts'
-    console.error('Exception getting active shirts:', err)
+    console.error('[databaseService] Exception getting active shirts:', err)
+    console.error('[databaseService] Exception stack:', err instanceof Error ? err.stack : 'no stack')
     return { data: null, error: message }
   }
 }

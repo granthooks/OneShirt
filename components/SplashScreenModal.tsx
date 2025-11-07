@@ -77,7 +77,7 @@ const SplashScreenModal: React.FC<SplashScreenModalProps> = ({ isOpen, onClose, 
                 Welcome to <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">OneShirt</span>!
               </h1>
               <p className="text-xl md:text-2xl text-gray-300 font-semibold">
-                Swipe. Bid. Win. Wear.
+                Swipe. Bid. Win!
               </p>
             </motion.div>
 
@@ -103,7 +103,7 @@ const SplashScreenModal: React.FC<SplashScreenModalProps> = ({ isOpen, onClose, 
                     Swipe Through Unique Designs
                   </h3>
                   <p className="text-gray-300 text-base md:text-lg">
-                    Every shirt is AI-generated and one-of-a-kind. Swipe right to bid, left to pass. Discover amazing designs you won't find anywhere else.
+                    Every shirt is hand-picked and from our premium collection. Swipe right to bid, left to pass. Discover amazing designs you won't find anywhere else.
                   </p>
                 </div>
               </motion.div>

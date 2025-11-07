@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThumbsUp, Heart } from 'lucide-react';
 import { Shirt, User, AppView } from './types';
@@ -18,12 +18,13 @@ import {
   placeBid,
   createShirt,
   markShirtAsWon,
+  updateShirt,
   subscribeToShirtUpdates,
   subscribeToBidUpdates,
   unsubscribeAll
 } from './services/databaseService';
 import type { User as DbUser, Shirt as DbShirt } from './services/supabaseClient';
-import { supabase } from './services/supabaseClient';
+import { supabase, reinitializeSupabaseClient } from './services/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
 const INITIAL_SHIRTS: Shirt[] = [
@@ -76,6 +77,12 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.SWIPE);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const retryShirtLoadRef = useRef(false);
+
+  // Debug: Log when isLoading changes
+  useEffect(() => {
+    console.log('[App] isLoading state changed to:', isLoading);
+  }, [isLoading]);
 
   // Check if splash screen should be shown
   useEffect(() => {
@@ -91,91 +98,262 @@ const App: React.FC = () => {
 
   // Initialize auth and data from Supabase on mount
   useEffect(() => {
+    // Safety net: Force loading to complete after 20 seconds maximum
+    const maxTimeout = setTimeout(() => {
+      console.warn('[App] Maximum initialization timeout reached (20s), forcing app to show');
+      setIsLoading(false);
+      setIsAuthLoading(false);
+    }, 20000);
+
     const initializeApp = async () => {
       try {
-        setIsLoading(true);
+        console.log('[App] Starting initialization...');
+        // Use functional update to avoid stale closure issues
+        setIsLoading(prev => {
+          console.log('[App] Setting isLoading to true, previous value:', prev);
+          return true;
+        });
         setIsAuthLoading(true);
         setError(null);
 
-        // Step 1: Check authentication session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          throw new Error(`Auth error: ${sessionError.message}`);
+        // Wait for session to be restored from localStorage
+        // This is critical after page refresh when user is logged in
+        // Supabase restores the session asynchronously, and queries might hang if executed too early
+        console.log('[App] Waiting for session to be restored...');
+        
+        // Step 3: Different approach - Wait for session using a more reliable method
+        // Instead of relying solely on events, we'll check localStorage directly and wait for the event
+        let sessionReceived = false;
+        let restoredSession: Session | null = null;
+        let sessionEvent: string | null = null;
+        
+        // First, check if there's a session in localStorage
+        const checkLocalStorageSession = () => {
+          try {
+            const sessionKey = Object.keys(localStorage).find(k => 
+              k.includes('supabase') && k.includes('auth-token')
+            );
+            if (sessionKey) {
+              const sessionData = localStorage.getItem(sessionKey);
+              if (sessionData) {
+                try {
+                  const parsed = JSON.parse(sessionData);
+                  if (parsed && parsed.access_token) {
+                    console.log('[App] Found session in localStorage');
+                    return true;
+                  }
+                } catch (e) {
+                  console.log('[App] Could not parse session from localStorage');
+                }
+              }
+            }
+          } catch (e) {
+            console.log('[App] Error checking localStorage:', e);
+          }
+          return false;
+        };
+        
+        const hasLocalStorageSession = checkLocalStorageSession();
+        console.log('[App] Has session in localStorage:', hasLocalStorageSession);
+        
+        const sessionCheckPromise = new Promise<void>((resolve) => {
+          // Set up listener for session events
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[App] Auth state change event:', event, 'session:', session ? 'present' : 'null');
+            
+            // On page refresh, INITIAL_SESSION should fire first
+            // On new login, SIGNED_IN fires
+            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+              console.log('[App] Session event received:', event, 'session:', session ? 'present' : 'null');
+              // Store the session from the event - this is reliable
+              restoredSession = session;
+              sessionEvent = event;
+              
+              // Ensure session is set in Supabase client before resolving
+              if (session) {
+                console.log('[App] Session present, waiting for client initialization...');
+                // Wait longer for INITIAL_SESSION (page refresh) to ensure session is fully set
+                const waitTime = event === 'INITIAL_SESSION' ? 1000 : 100;
+                setTimeout(() => {
+                  sessionReceived = true;
+                  subscription.unsubscribe();
+                  resolve();
+                }, waitTime);
+              } else {
+                sessionReceived = true;
+                subscription.unsubscribe();
+                resolve();
+              }
+            }
+          });
+          
+          // If we have a session in localStorage but no event fires quickly, wait a bit longer
+          const timeoutDuration = hasLocalStorageSession ? 3000 : 2000;
+          setTimeout(() => {
+            if (!sessionReceived) {
+              console.log(`[App] Session check timeout after ${timeoutDuration}ms, proceeding anyway`);
+              subscription.unsubscribe();
+              resolve();
+            }
+          }, timeoutDuration);
+        });
+        
+        await sessionCheckPromise;
+        console.log('[App] Session restoration check complete, restoredSession:', restoredSession ? 'present' : 'null');
+        
+        // Step 1: Removed re-initialization - it creates multiple GoTrueClient instances
+        // which causes conflicts and undefined behavior. Use the existing client instead.
+        
+        // CRITICAL FIX: After session restoration, Supabase's getSession() hangs
+        // This is because autoRefreshToken tries to refresh the token proactively
+        // Instead of calling getSession(), we'll use the session from onAuthStateChange directly
+        // The session is already set internally by Supabase, we just need to wait for it to be ready
+        
+        // Add a delay to ensure Supabase client has fully initialized the session internally
+        // This is critical after page refresh when session needs to be restored
+        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('[App] Proceeding with queries after session initialization delay');
+        
+        // Step 2: If we have a session, explicitly set it in the Supabase client
+        // Step 4: Different approach - Instead of waiting, try to use the session directly from localStorage
+        if (restoredSession) {
+          // Wait longer for INITIAL_SESSION (page refresh) to ensure session is fully initialized
+          // INITIAL_SESSION needs more time because the client is restoring from localStorage
+          const waitTime = sessionEvent === 'INITIAL_SESSION' ? 2000 : 1000;
+          console.log('[App] Waiting', waitTime, 'ms for session to be fully initialized (event:', sessionEvent, ')');
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          
+          // Step 1: Skip manual setSession - it hangs, and the session should already be set from onAuthStateChange
+          // The session from the event should already be in the client, we just need to wait for it to be ready
+          console.log('[App] Skipping manual setSession (it hangs). Session should already be set from onAuthStateChange.');
+          
+          // Wait a bit more to ensure the session is fully propagated
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log('[App] Session verified, proceeding with queries');
         }
-
-        setSession(currentSession);
+        
         setIsAuthLoading(false);
-
-        // Step 2: Load user data ONLY if authenticated
-        if (currentSession?.user) {
-          const supabaseUserId = currentSession.user.id;
-
-          // Try to load user from database using their Supabase auth ID
-          const { data: existingUsers, error: getUserError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', supabaseUserId)
-            .single();
-
-          if (getUserError && getUserError.code !== 'PGRST116') {
-            // PGRST116 is "not found" error, which is okay
-            console.error('Error loading user:', getUserError);
-            throw new Error(`Failed to load user: ${getUserError.message}`);
-          }
-
-          if (existingUsers) {
-            // User exists in database
-            setDbUser(existingUsers);
-            setUser(dbUserToAppUser(existingUsers));
-            setUserId(existingUsers.id);
-          } else {
-            // User is authenticated but doesn't have a profile yet
-            // This is expected for first-time login via magic link
-            console.log('Authenticated user without profile - profile will be created on first login flow');
-            setUser(null);
-            setUserId(supabaseUserId);
-          }
-        } else {
-          // Not authenticated - clear user data
-          setUser(null);
-          setUserId(null);
-        }
+        
+        // Don't try to load user data here - the auth state change listener will handle it
+        // when the session is ready. This prevents hanging on getSession().
 
         // Step 3: Load active shirts (public data, always load)
-        const shirtsResponse = await getActiveShirts();
-        if (shirtsResponse.error) {
-          throw new Error(`Failed to load shirts: ${shirtsResponse.error}`);
+        console.log('[App] Step 3: Loading active shirts...');
+        let dbShirts: any[] = [];
+        let hadError = false;
+        
+        try {
+          // Step 4: Test with a minimal query first to isolate the issue
+          console.log('[App] Testing minimal query to isolate issue...');
+          try {
+            const minimalTest = await Promise.race([
+              supabase.from('shirts').select('id').limit(1),
+              new Promise<{ data: null; error: string }>((resolve) => {
+                setTimeout(() => {
+                  console.error('[App] Minimal query timed out after 5 seconds');
+                  resolve({ data: null, error: 'Minimal query timeout' });
+                }, 5000);
+              }),
+            ]);
+            console.log('[App] Minimal query result:', minimalTest);
+            if (minimalTest && 'error' in minimalTest && minimalTest.error) {
+              console.error('[App] Minimal query failed:', minimalTest.error);
+            }
+          } catch (minimalError) {
+            console.error('[App] Minimal query exception:', minimalError);
+          }
+          
+          console.log('[App] Calling getActiveShirts()...');
+          // getActiveShirts() already has a timeout built in (8 seconds), so just await it directly
+          // Add a timeout wrapper to prevent infinite hanging
+          const shirtsResponse = await Promise.race([
+            getActiveShirts(),
+            new Promise<{ data: null; error: string }>((resolve) => {
+              setTimeout(() => {
+                console.error('[App] getActiveShirts() timed out after 10 seconds');
+                resolve({ data: null, error: 'Request timeout' });
+              }, 10000);
+            }),
+          ]);
+          console.log('[App] getActiveShirts() response received:', shirtsResponse);
+          console.log('[App] Response structure:', JSON.stringify(shirtsResponse));
+          console.log('[App] shirtsResponse.error value:', shirtsResponse.error);
+          console.log('[App] shirtsResponse.error type:', typeof shirtsResponse.error);
+          console.log('[App] shirtsResponse.error truthy:', !!shirtsResponse.error);
+          
+          if (shirtsResponse.error) {
+            console.error('[App] Error loading shirts:', shirtsResponse.error);
+            // Set error state so user knows there's a connection issue
+            hadError = true;
+            dbShirts = [];
+            // Show error message instead of empty state
+            setError('Unable to connect to server. Please check your connection and refresh the page.');
+            retryShirtLoadRef.current = true; // Mark for retry when session is ready
+          } else {
+            dbShirts = shirtsResponse.data || [];
+            console.log('[App] Loaded', dbShirts.length, 'shirts from database');
+          }
+        } catch (error) {
+          console.error('[App] Exception loading shirts:', error);
+          // Set error state
+          hadError = true;
+          dbShirts = [];
+          setError('Failed to load shirts. Please refresh the page.');
+          console.warn('[App] Continuing with error state due to exception');
         }
 
-        const dbShirts = shirtsResponse.data || [];
-
-        // If no shirts exist, create initial shirts
+        // If no shirts exist, create initial shirts (but skip if we had a timeout/error)
         if (dbShirts.length === 0) {
-          console.log('No shirts in database, creating initial shirts...');
-          const initialShirtPromises = INITIAL_SHIRTS.map(shirt =>
-            createShirt(shirt.name, shirt.imageUrl, shirt.bidThreshold, shirt.designer, shirt.likes)
-          );
-          const createdShirts = await Promise.all(initialShirtPromises);
-          const validShirts = createdShirts
-            .filter(response => response.data !== null)
-            .map(response => response.data!);
-          setShirts(validShirts.map(dbShirtToAppShirt));
+          // Only try to create initial shirts if we successfully connected to the database
+          // If there was a timeout/error, show error state instead of empty state
+          
+          if (!hadError) {
+            console.log('[App] No shirts in database, creating initial shirts...');
+            try {
+              const initialShirtPromises = INITIAL_SHIRTS.map(shirt =>
+                createShirt(shirt.name, shirt.imageUrl, shirt.bidThreshold, shirt.designer, shirt.likes)
+              );
+              const createdShirts = await Promise.all(initialShirtPromises);
+              const validShirts = createdShirts
+                .filter(response => response.data !== null)
+                .map(response => response.data!);
+              console.log('[App] Created', validShirts.length, 'initial shirts');
+              setShirts(validShirts.map(dbShirtToAppShirt));
+            } catch (createError) {
+              console.error('[App] Error creating initial shirts:', createError);
+              // Continue with empty array
+              setShirts([]);
+            }
+          } else {
+            console.log('[App] Skipping initial shirt creation due to connection error, showing error state');
+            setShirts([]);
+            // Error already set above
+          }
         } else {
           setShirts(dbShirts.map(dbShirtToAppShirt));
         }
 
-        setIsLoading(false);
+        console.log('[App] Step 3 complete, setting isLoading to false');
+        clearTimeout(maxTimeout); // Clear the safety timeout
+        // Use functional update to ensure state updates correctly
+        setIsLoading(prev => {
+          console.log('[App] Setting isLoading to false, previous value:', prev);
+          return false;
+        });
+        console.log('[App] setIsLoading(false) called');
 
         // Step 4: Set up realtime subscriptions after data is loaded
-        console.log('Setting up realtime subscriptions...');
+        console.log('[App] Step 4: Setting up realtime subscriptions...');
 
         // Subscribe to shirt updates (INSERT, UPDATE)
+        // Note: Supabase realtime payload structure uses 'eventType' property
         const shirtSubscription = subscribeToShirtUpdates((payload) => {
-          console.log('Shirt update received:', payload);
-
-          if (payload.eventType === 'INSERT') {
+          console.log('[App] Shirt update received:', payload);
+          
+          // Handle different payload structures (eventType or event)
+          const eventType = payload.eventType || payload.event;
+          
+          if (eventType === 'INSERT') {
             // New shirt added to database
             const newShirt = payload.new as DbShirt;
             setShirts(prevShirts => {
@@ -185,7 +363,7 @@ const App: React.FC = () => {
               }
               return [dbShirtToAppShirt(newShirt), ...prevShirts];
             });
-          } else if (payload.eventType === 'UPDATE') {
+          } else if (eventType === 'UPDATE') {
             // Shirt updated in database
             const updatedShirt = payload.new as DbShirt;
             setShirts(prevShirts => {
@@ -214,9 +392,12 @@ const App: React.FC = () => {
 
         // Subscribe to bid updates (INSERT only)
         const bidSubscription = subscribeToBidUpdates((payload) => {
-          console.log('Bid update received:', payload);
+          console.log('[App] Bid update received:', payload);
+          
+          // Handle different payload structures (eventType or event)
+          const eventType = payload.eventType || payload.event;
 
-          if (payload.eventType === 'INSERT') {
+          if (eventType === 'INSERT') {
             const newBid = payload.new as { shirt_id: string; user_id: string };
 
             // Update the shirt's bid count in local state
@@ -236,9 +417,11 @@ const App: React.FC = () => {
           }
         });
 
-        console.log('Realtime subscriptions active');
+        console.log('[App] Initialization complete! Realtime subscriptions active');
+        clearTimeout(maxTimeout); // Clear the safety timeout
       } catch (err) {
-        console.error('Error initializing app:', err);
+        console.error('[App] Error initializing app:', err);
+        clearTimeout(maxTimeout); // Clear the safety timeout
         setError(err instanceof Error ? err.message : 'Failed to load data');
         setIsLoading(false);
         setIsAuthLoading(false);
@@ -249,6 +432,7 @@ const App: React.FC = () => {
 
     // Cleanup function: unsubscribe from all channels when component unmounts
     return () => {
+      clearTimeout(maxTimeout);
       console.log('Cleaning up realtime subscriptions...');
       unsubscribeAll();
     };
@@ -257,63 +441,94 @@ const App: React.FC = () => {
   // Listen for auth state changes (login/logout)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('Auth state changed:', event, currentSession);
+      console.log('[App] Auth state changed:', event, currentSession);
 
       setSession(currentSession);
 
-      if (event === 'SIGNED_IN' && currentSession?.user) {
+      // If we have an error and session becomes available, retry loading shirts
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentSession && retryShirtLoadRef.current) {
+        console.log('[App] Session available and we have an error, retrying shirt load...');
+        retryShirtLoadRef.current = false; // Reset flag
+        try {
+          const shirtsResponse = await getActiveShirts();
+          if (!shirtsResponse.error && shirtsResponse.data) {
+            console.log('[App] Retry successful, loaded', shirtsResponse.data.length, 'shirts');
+            setShirts(shirtsResponse.data.map(dbShirtToAppShirt));
+            setError(null); // Clear error on success
+          }
+        } catch (retryError) {
+          console.error('[App] Retry failed:', retryError);
+        }
+      }
+
+      // Handle both initial session and sign-in events
+      // CRITICAL: Don't make queries in the auth state change handler - it can cause deadlocks
+      // The client might be waiting for this handler to complete before allowing other queries
+      // Instead, defer the query to avoid blocking
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && currentSession?.user) {
         // User logged in - load their profile
+        // Defer the query to avoid blocking the auth state change handler
         const supabaseUserId = currentSession.user.id;
         const userEmail = currentSession.user.email;
 
-        const { data: existingUser, error: getUserError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', supabaseUserId)
-          .single();
+        // Use setTimeout to defer the query and avoid blocking
+        setTimeout(async () => {
+          try {
+            const { data: existingUser, error: getUserError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', supabaseUserId)
+              .single();
 
-        if (getUserError && getUserError.code !== 'PGRST116') {
-          console.error('Error loading user after sign in:', getUserError);
-          return;
-        }
+            if (getUserError && getUserError.code !== 'PGRST116') {
+              console.error('Error loading user after sign in:', getUserError);
+              return;
+            }
 
-        if (existingUser) {
-          setDbUser(existingUser);
-          setUser(dbUserToAppUser(existingUser));
-          setUserId(existingUser.id);
-        } else {
-          // User authenticated but no profile - create new profile
-          console.log('Creating new user profile for:', userEmail);
+            if (existingUser) {
+              console.log('[App] User loaded from database via auth state change');
+              const user = existingUser as DbUser;
+              setDbUser(user);
+              setUser(dbUserToAppUser(user));
+              setUserId(user.id);
+            } else {
+              // User authenticated but no profile - create new profile
+              console.log('[App] Creating new user profile for:', userEmail);
 
-          // Extract name from email (part before @)
-          const nameFromEmail = userEmail?.split('@')[0] || 'User';
+              // Extract name from email (part before @)
+              const nameFromEmail = userEmail?.split('@')[0] || 'User';
 
-          // Create user profile in database
-          const { data: newUser, error: createError } = await supabase
-            .from('users')
-            .insert({
-              id: supabaseUserId,
-              name: nameFromEmail,
-              avatar_url: `https://i.pravatar.cc/150?u=${supabaseUserId}`,
-              credit_balance: 100,
-              is_admin: false,
-            })
-            .select()
-            .single();
+              // Create user profile in database
+              const { data: newUser, error: createError } = await supabase
+                .from('users')
+                .insert({
+                  id: supabaseUserId,
+                  name: nameFromEmail,
+                  avatar_url: `https://i.pravatar.cc/150?u=${supabaseUserId}`,
+                  credit_balance: 100,
+                  is_admin: false,
+                } as any)
+                .select()
+                .single();
 
-          if (createError) {
-            console.error('Error creating user profile:', createError);
-            alert('Failed to create user profile. Please try again.');
-            return;
+              if (createError) {
+                console.error('Error creating user profile:', createError);
+                alert('Failed to create user profile. Please try again.');
+                return;
+              }
+
+              if (newUser) {
+                console.log('User profile created successfully:', newUser);
+                const user = newUser as DbUser;
+                setDbUser(user);
+                setUser(dbUserToAppUser(user));
+                setUserId(user.id);
+              }
+            }
+          } catch (profileError) {
+            console.error('[App] Error loading/creating user profile in deferred handler:', profileError);
           }
-
-          if (newUser) {
-            console.log('User profile created successfully:', newUser);
-            setDbUser(newUser);
-            setUser(dbUserToAppUser(newUser));
-            setUserId(newUser.id);
-          }
-        }
+        }, 100); // Defer by 100ms to avoid blocking
       } else if (event === 'SIGNED_OUT') {
         // User logged out - clear user data
         setUser(null);
@@ -466,8 +681,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleProfileIconClick = () => {
+    // Toggle dropdown instead of opening modal directly
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  };
+
   const handleProfileClick = () => {
+    // Open profile modal (called from dropdown menu)
     setIsProfileModalOpen(true);
+    setIsProfileDropdownOpen(false);
   };
 
   const handleLogout = async () => {
@@ -507,8 +729,12 @@ const App: React.FC = () => {
 
   const activeShirts = shirts.slice(currentIndex, currentIndex + 3).reverse();
 
+  // Debug: Log render state
+  console.log('[App] Render check - isLoading:', isLoading, 'error:', error, 'shirts.length:', shirts.length);
+
   // Show loading state
   if (isLoading) {
+    console.log('[App] Rendering loading screen because isLoading is:', isLoading);
     return (
       <div className="w-full h-screen bg-gray-900 text-white flex flex-col items-center justify-center overflow-hidden antialiased p-4">
         <div className="text-center">
@@ -573,6 +799,7 @@ const App: React.FC = () => {
         currentView={view}
         isAuthenticated={isAuthenticated}
         onLoginClick={() => setIsLoginModalOpen(true)}
+        onProfileIconClick={handleProfileIconClick}
         onProfileClick={handleProfileClick}
         isProfileDropdownOpen={isProfileDropdownOpen}
         onCloseProfileDropdown={() => setIsProfileDropdownOpen(false)}
@@ -608,6 +835,7 @@ interface HeaderProps {
   currentView: AppView;
   isAuthenticated: boolean;
   onLoginClick: () => void;
+  onProfileIconClick: () => void;
   onProfileClick: () => void;
   isProfileDropdownOpen: boolean;
   onCloseProfileDropdown: () => void;
@@ -616,9 +844,10 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ 
   user, 
   setView, 
-  currentView, 
-  isAuthenticated, 
+  currentView,
+  isAuthenticated,
   onLoginClick,
+  onProfileIconClick,
   onProfileClick,
   isProfileDropdownOpen,
   onCloseProfileDropdown,
@@ -681,7 +910,7 @@ const Header: React.FC<HeaderProps> = ({
         {isAuthenticated ? (
           <div className="relative">
             <motion.button
-              onClick={onProfileClick}
+              onClick={onProfileIconClick}
               className="p-2 rounded-full hover:bg-white/10 transition-colors"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -762,6 +991,11 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
   // Use state instead of ref to trigger re-renders for exit animation
   const [exitDirection, setExitDirection] = useState<'left' | 'right'>('right');
 
+  // Sync like count when shirt prop changes (e.g., from realtime updates)
+  useEffect(() => {
+    setLikeCount(shirt.likes || 0);
+  }, [shirt.likes]);
+
 
   // Define animation variants - these are evaluated when the animation plays, not at render time
   const cardVariants = {
@@ -799,10 +1033,33 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ shirt, onSwipe, isActive, style }
     }
   };
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsLiked(!isLiked);
-    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+    const newIsLiked = !isLiked;
+    const newLikeCount = isLiked ? likeCount - 1 : likeCount + 1;
+    
+    // Update local state immediately for responsive UI
+    setIsLiked(newIsLiked);
+    setLikeCount(newLikeCount);
+    
+    // Save to database
+    try {
+      const { error } = await updateShirt(shirt.id, {
+        like_count: newLikeCount
+      });
+      
+      if (error) {
+        console.error('Error updating like count:', error);
+        // Revert local state on error
+        setIsLiked(isLiked);
+        setLikeCount(likeCount);
+      }
+    } catch (err) {
+      console.error('Exception updating like count:', err);
+      // Revert local state on error
+      setIsLiked(isLiked);
+      setLikeCount(likeCount);
+    }
   };
 
   const handleButtonSwipe = (direction: 'left' | 'right') => {
