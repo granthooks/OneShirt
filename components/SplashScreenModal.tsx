@@ -33,7 +33,11 @@ const SplashScreenModal: React.FC<SplashScreenModalProps> = ({ isOpen, onClose, 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto"
+          style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+          }}
           onClick={handleSkip}
         >
           <motion.div
@@ -41,7 +45,7 @@ const SplashScreenModal: React.FC<SplashScreenModalProps> = ({ isOpen, onClose, 
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 50 }}
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl shadow-2xl p-8 md:p-12 text-center max-w-2xl w-full relative my-8"
+            className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl shadow-2xl p-6 pt-12 md:p-12 md:pt-12 text-center max-w-2xl w-full relative my-4 md:my-8 min-h-fit"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close/Skip button */}
