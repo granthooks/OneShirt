@@ -422,9 +422,11 @@ export async function getActiveShirts(): Promise<DatabaseResponse<Shirt[]>> {
  */
 export async function getAllShirts(): Promise<DatabaseResponse<Shirt[]>> {
   try {
+    // Filter out inactive shirts by default
     const { data, error } = await supabase
       .from('shirts')
       .select('*')
+      .neq('status', 'inactive')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -580,7 +582,7 @@ export async function updateShirt(
     designer?: string | null
     bid_threshold?: number
     like_count?: number | null
-    status?: 'active' | 'won'
+    status?: 'active' | 'won' | 'inactive'
   }
 ): Promise<DatabaseResponse<Shirt>> {
   try {
@@ -622,9 +624,10 @@ export async function deleteShirt(
   shirtId: string
 ): Promise<DatabaseResponse<boolean>> {
   try {
+    // Soft delete: set status to 'inactive' instead of actually deleting
     const { error } = await supabase
       .from('shirts')
-      .delete()
+      .update({ status: 'inactive' })
       .eq('id', shirtId)
 
     if (error) {

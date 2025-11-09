@@ -70,7 +70,7 @@ export type Database = {
           current_bid_count: number
           bid_threshold: number
           winner_id: string | null
-          status: 'active' | 'won'
+          status: 'active' | 'won' | 'inactive'
           designer: string | null
           like_count: number | null
           created_at: string
@@ -83,7 +83,7 @@ export type Database = {
           current_bid_count?: number
           bid_threshold?: number
           winner_id?: string | null
-          status?: 'active' | 'won'
+          status?: 'active' | 'won' | 'inactive'
           designer?: string | null
           like_count?: number | null
           created_at?: string
@@ -96,7 +96,7 @@ export type Database = {
           current_bid_count?: number
           bid_threshold?: number
           winner_id?: string | null
-          status?: 'active' | 'won'
+          status?: 'active' | 'won' | 'inactive'
           designer?: string | null
           like_count?: number | null
           created_at?: string

@@ -568,13 +568,19 @@ const App: React.FC = () => {
       // Check if user is authenticated
       if (!session) {
         alert('Please log in to place bids.');
-        setCurrentIndex(prev => prev + 1);
+        setCurrentIndex(prev => {
+          const nextIndex = prev + 1;
+          return nextIndex >= shirts.length ? 0 : nextIndex;
+        });
         return;
       }
 
       if (!user) {
         alert('Please complete your profile setup to place bids.');
-        setCurrentIndex(prev => prev + 1);
+        setCurrentIndex(prev => {
+          const nextIndex = prev + 1;
+          return nextIndex >= shirts.length ? 0 : nextIndex;
+        });
         return;
       }
 
@@ -622,8 +628,13 @@ const App: React.FC = () => {
         alert("You're out of credits! Please buy more.");
       }
     }
-    setCurrentIndex(prev => prev + 1);
-  }, [user, userId, session]);
+    // Cycle back to beginning when all shirts have been swiped
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      // If we've reached the end, cycle back to the beginning
+      return nextIndex >= shirts.length ? 0 : nextIndex;
+    });
+  }, [user, userId, session, shirts.length]);
 
   // Simulate other users bidding (visual only, not persisted to database)
   useEffect(() => {
