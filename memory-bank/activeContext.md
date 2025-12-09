@@ -21,6 +21,11 @@ Previous work completed:
 
 ## 📝 Recent Changes
 
+### Dependency Security Upgrade (2025-12-09)
+
+- Updated React and ReactDOM to 19.2.1 (patched CVE-2025-55182 affecting 19.0–19.2.0).
+- npm install completed; lockfile updated automatically.
+
 ### Code Cleanup - Debug Log Removal (2025-01-05)
 
 **Removed:**

@@ -8,3 +8,4 @@ DROP CONSTRAINT IF EXISTS shirts_status_check;
 ALTER TABLE shirts
 ADD CONSTRAINT shirts_status_check CHECK (status IN ('active', 'won', 'inactive'));
 
+

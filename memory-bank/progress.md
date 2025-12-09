@@ -380,6 +380,11 @@ Nothing currently in active development.
 
 ## 🔄 Recent Activity Log
 
+### 2025-12-09
+
+**Dependency Security:**
+- ✅ Upgraded React and ReactDOM to 19.2.1 (patched CVE-2025-55182 affecting 19.0–19.2.0).
+
 ### 2025-01-05
 
 **Code Cleanup:**
