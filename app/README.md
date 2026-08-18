@@ -5,6 +5,48 @@ on Convex + Clerk + Vite/React, per the spec in [`../docs`](../docs)
 (start with [`../docs/README.md`](../docs/README.md) and
 [`01-product-overview.md`](../docs/01-product-overview.md)).
 
+## Current status (2026-08-18)
+
+**Live at [https://oneshirt.app](https://oneshirt.app)** — deployed via
+self-hosted Coolify (see [Deployment](#deployment) below); pushes to
+`main` auto-deploy.
+
+Working end-to-end (all verified against the cloud dev deployment):
+
+- **Player**: guest deck browsing, Clerk email-code signup/login with 18+
+  attestation (welcome credits + 5 daily free swipes on first touch),
+  swipe deck with drag physics, single & **multi-bid** (×1/×5/×10/×25
+  picker; atomic batch with free-swipes-first, entry-cap and
+  threshold-stop rules), likes, early-bird 2× entries, wallet
+  (balance/staked breakdown, daily claim + streak, ledger), buy-credits
+  via **live Stripe Checkout** (test mode) with idempotent webhook
+  fulfillment, My Bids, Orders, Buy It Now flow (size/address/credit
+  application), notifications center, profile page + modal, rules page,
+  shirt share pages, win/draw-imminent overlays.
+- **Admin** (`/admin`): dashboard stats + activity, inventory
+  (create/activate with prize-load warning/archive/edit), Generate
+  (fal.ai wired), users (credit grants, role toggle), orders, draw audit
+  log, config editor.
+- **Draws/crons**: threshold → scheduled CSPRNG draw with audit row,
+  unstaking, notifications, prize-order creation; hourly expiry sweep and
+  draw watchdog; daily Printify reconciliation.
+
+**Not yet production-grade** (works, but in dev/test mode):
+
+| Area | Current | For production |
+|---|---|---|
+| Convex | **dev** deployment `impartial-jellyfish-878` | `npx convex deploy` to a prod deployment; update `VITE_CONVEX_URL` build var + webhook URLs |
+| Clerk | dev instance `tolerant-possum-63` (`pk_test`) | Production Clerk instance (needs DNS records on oneshirt.app) |
+| Stripe | test mode keys/webhook | Live keys + live-mode webhook endpoint |
+| Printify | not configured | Set `PRINTIFY_API_TOKEN` / `PRINTIFY_SHOP_ID` |
+| Data | test user + demo/test shirts and bids | Wipe via Convex dashboard before launch |
+
+Spec deltas implemented beyond `../docs/05-backend-functions.md`:
+`bids.placeBid` accepts optional `count` (1–25, all-or-nothing funding,
+batch stops at threshold, returns `placedCount`); `admin.internalSetRole`
+(CLI-only ops mutation); `notifications.list/unreadCount` are
+guest-tolerant (return empty rather than throw).
+
 Players swipe through a deck of active shirt designs, stake credits to
 enter each shirt's draw, and winners get their shirt printed and shipped
 via Printify. Credits are purchased with Stripe. Designs are generated
@@ -100,7 +142,7 @@ runs its normal authenticated flow (email-code login via `LoginModal`).
    created via Stripe API, secret set as `STRIPE_WEBHOOK_SECRET`.
 4. Set `SITE_URL` (Convex-side) to your deployed app origin — used to
    build Stripe Checkout success/cancel redirect URLs. **DONE** —
-   `http://localhost:5173`.
+   `https://oneshirt.app` (since the 2026-08-18 deployment).
 
 ### 3. fal.ai (design generation)
 
@@ -113,6 +155,29 @@ Set `PRINTIFY_API_TOKEN` and `PRINTIFY_SHOP_ID` (Convex-side). Optionally
 set `PRINTIFY_WEBHOOK_SECRET` and add a webhook at
 `<site-url>/printify-webhook` for order-status updates (shipped/delivered
 notifications) — signature verification is skipped if this is unset.
+
+## Deployment
+
+The frontend is a static SPA served by nginx, built by the multi-stage
+[`Dockerfile`](Dockerfile) (Node 22 build → nginx:alpine with
+[`nginx.conf`](nginx.conf) providing the SPA fallback and asset caching).
+The Convex backend is not part of the container — the bundle talks to the
+Convex cloud deployment baked in at build time.
+
+Production hosting is a **self-hosted Coolify** instance:
+
+- Application `OneShirt.app` (uuid `rcksgckkosgsc8g4gskk8gs4`, project
+  "Agentic Services Apps"), domain `https://oneshirt.app` with automatic
+  Let's Encrypt TLS via Traefik.
+- Source: the public GitHub repo `granthooks/OneShirt`, branch `main`,
+  via GitHub App — **pushes to `main` auto-deploy**.
+- Build pack `dockerfile`, base directory `/app`, exposed port `80`.
+- Build-time env vars (Coolify → app → Environment Variables, marked
+  build-time; baked into the JS bundle): `VITE_CONVEX_URL`,
+  `VITE_CLERK_PUBLISHABLE_KEY`. Changing either requires a redeploy.
+- Gotcha fixed 2026-08-18: the app's stored Traefik labels pointed at
+  port 3000 from its pre-rebuild config, causing 502s — if routing ever
+  breaks after a config change, check the custom labels' `loadbalancer.server.port`.
 
 ## Environment variables
 
@@ -165,11 +230,18 @@ This is a guarded mutation that promotes the *authenticated caller*
 context with credentials, e.g. via the Convex dashboard's function runner
 while logged in, or adapted into a temporary authenticated script) and
 only succeeds while zero admins exist in the `users` table; once any
-admin exists it always throws `ADMIN_ALREADY_EXISTS`. Simplest path in
-practice: open the Convex dashboard (`npx convex dashboard`) → Data →
-`users` table → find your row → edit the `role` field directly from
-`"player"` to `"admin"`. This is equivalent and works with zero auth
-context, which is why it's the more commonly used route in local dev.
+admin exists it always throws `ADMIN_ALREADY_EXISTS`.
+
+**CLI ops route (works anytime):** `admin.internalSetRole` is an
+`internalMutation` (unreachable from clients) that patches a user's role
+by email:
+
+```bash
+npx convex run admin:internalSetRole '{"email":"you@example.com","role":"admin"}'
+```
+
+Equivalently, edit the `role` field directly in the Convex dashboard
+(`npx convex dashboard` → Data → `users`).
 
 ## Scripts
 

@@ -2,7 +2,7 @@
 
 This folder is the **complete specification for rebuilding OneShirt from scratch** on a new stack. It is written so that an AI coding agent (or human team) can implement the app without access to this repository's legacy code. Where legacy code is worth consulting, the doc says so explicitly.
 
-> **Status:** the rebuild described here has been implemented — the app lives in [../app/](../app/) (see its [README](../app/README.md) for setup and [DESIGN.md](../app/DESIGN.md) for the visual spec). These docs remain the behavioral/architectural source of truth.
+> **Status (2026-08-18):** the rebuild described here has been implemented — the app lives in [../app/](../app/) and is **live at [https://oneshirt.app](https://oneshirt.app)** (Convex dev deployment, Clerk/Stripe test mode, Printify unconfigured; see the [status section of ../app/README.md](../app/README.md#current-status-2026-08-18)). These docs remain the behavioral/architectural source of truth. Implementation deltas beyond the spec so far: `bids.placeBid` accepts an optional `count` (batch/multi-bid, all-or-nothing funding, stops at threshold), `notifications.list`/`unreadCount` are guest-tolerant, and `admin.internalSetRole` exists as a CLI-only ops mutation.
 
 ## The one-paragraph brief
 

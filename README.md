@@ -2,6 +2,8 @@
 
 Swipe. Win. Wear. — a mobile-first web app where players swipe through AI-generated t-shirt designs. Swiping right places a 1-credit bid that doubles as an entry in that shirt's prize draw; when a shirt's visible bid threshold fills, one entry is drawn at random and that player wins the physical shirt free (fulfilled via Printify). Credits are never lost — every credit spent bidding remains full-value store credit.
 
+> **Status:** live at **[https://oneshirt.app](https://oneshirt.app)** (deployed 2026-08-18 via Coolify; pushes to `main` auto-deploy). Auth, bidding, draws, wallet, Stripe checkout, and the admin console all work end-to-end — currently against a Convex **dev** deployment with Clerk/Stripe in **test mode**; Printify fulfillment is not yet configured. See [app/README.md](app/README.md#current-status-2026-08-18) for the full status table and production checklist.
+
 ## Repository layout
 
 | Path | What it is |
