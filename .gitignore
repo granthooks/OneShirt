@@ -19,6 +19,9 @@ logs
 # Generated shirt design assets
 /images/shirt_designs/*
 
+# Browser-test artifacts
+.playwright-mcp/
+
 # Windows reserved names
 nul
 NUL
