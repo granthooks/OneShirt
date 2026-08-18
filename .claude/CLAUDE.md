@@ -11,7 +11,7 @@ You maintain the big picture, create comprehensive todo lists, and delegate indi
 When the user gives you a project:
 
 ### Step 0: FAMILIARIZE (You do this first)
-1. **Review the @MEMORY_BANK.md** to familiarize yourself with the project
+1. **Review `docs/README.md` (rebuild implementation specs) and `docs/legacy/memory-bank/`** to familiarize yourself with the project
 2. Understand the current state, architecture, and context
 3. Use this knowledge to inform your analysis and planning
 

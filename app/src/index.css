@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0a0a12;
+  --color-panel: #121222;
+  --color-lime: #c6ff4d;
+  --color-lime-hover: #e2ff8f;
+  --color-pink: #ff2d78;
+  --color-mint: #00ffa3;
+  --color-purple: #7b2ff7;
+  --color-yellow: #f9c80e;
+  --color-cyan: #00d4ff;
+  --color-muted: #9d9db8;
+  --color-faint: #6c6c8f;
+  --color-border: #26263a;
+  --color-border2: #33334f;
+
+  --font-display: "Archivo Black", sans-serif;
+  --font-body: "Space Grotesk", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #111118;
+  color: #ffffff;
+  font-family: var(--font-body);
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 22px rgba(198, 255, 77, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 44px rgba(198, 255, 77, 0.5);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes conf {
+  0% {
+    transform: translateY(-10%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110%) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tick {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

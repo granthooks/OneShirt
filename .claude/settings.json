@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -iE 'test-|\\\\.spec\\\\.|manual-|nul$|test-output|\\\\.backup')",
+      "Bash(rm -rf .playwright-mcp test-results test-screenshots scraper/test-output)",
+      "Bash(rm -f manual-initial.png nul)",
+      "Bash(rm -f auth-ui.spec.js check-console.spec.js manual-test.cjs test-admin.mjs test-auth-ui.js test-header.js test-scraped-shirts.js test-scraper-logging.html test-swipe-animation.cjs test-swipe-correct.cjs test-urls.txt test-with-selectors.cjs)",
+      "Bash(rm -f 'C:gkhdocumentsProjectsOneShirtapptest-scraped-shirts.js')",
+      "Bash(git rm *)",
+      "Bash(rm -f scraper/test-api-direct.ts scraper/test-brightdata.ts scraper/test-jina.ts scraper/test-list-zones.ts scraper/test-product-fetch.ts scraper/analyze-product-html.ts scraper/test-output-homepage.html scraper/test-output-mens-search.html)",
+      "Bash(rm -f memory-bank/MEMORY_BANK.md.backup)",
+      "Bash(rm -f ADMIN_DASHBOARD.md ADMIN_IMPLEMENTATION_SUMMARY.md EDGE_FUNCTION_SETUP_NO_CLI.md QUICK_TEST_GUIDE.md SCRAPER_DEBUGGING.md SCRAPER_FIX_SUMMARY.md SCRAPER_README.md SCRAPER_UI_LAYOUT.md SETUP_EDGE_FUNCTION.md SETUP_EDGE_FUNCTION_DASHBOARD.md SUPABASE_DEBUG_SETUP.md)",
+      "Bash(rm -f server/test-ssl-fix.js server/SSL_FIX_README.md)"
+    ]
+  }
+}

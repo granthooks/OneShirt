@@ -1,37 +1,24 @@
+# OS / editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.sw?
+
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Local env files anywhere
 *.local
+.env
+.env.*
+!.env.local.example
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
+# Generated shirt design assets
 /images/shirt_designs/*
 
 # Windows reserved names
 nul
 NUL
-
-# Temporary files
-server-output.txt
-test-results/
-*.spec.js
-test-*.js
-test-*.mjs
